@@ -1,16 +1,74 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from "react";
+import { Toaster } from "../src/components/ui/toaster";
+import { Sonner } from "../src/components/ui/sonner";
+import { TooltipProvider } from "../src/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
+import LoginPage from "./components/LoginPage";
+import AdminDashboard from "./components/AdminDashboard";
+import NotFound from "./pages/NotFound";
 
-  return (
-    <>
-   <h1 className='font-bold text-center text-orange-300'>tailwind is configured</h1>
-    </>
-  )
+
+
+const queryClient = new QueryClient();
+
+function RequireAuth({ isLoggedIn, children }) {
+  const location = useLocation();
+  if (!isLoggedIn) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return children;
 }
 
-export default App
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState("");
+
+  const handleLogin = (role) => {
+    setUserRole(role);
+    setIsLoggedIn(true);
+    console.log(`Admin logged in with role: ${role}`);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserRole("");
+    console.log("Admin logged out");
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Toaster />
+          <Sonner />
+         <Routes>
+  <Route path="/" element={<Navigate to="/login" replace />} />
+  <Route
+    path="/login"
+    element={
+      isLoggedIn ? (
+        <Navigate to="/dashboard" replace />
+      ) : (
+        <LoginPage onLogin={handleLogin} />
+      )
+    }
+  />
+  <Route
+    path="/dashboard"
+    element={
+      <RequireAuth isLoggedIn={isLoggedIn}>
+        <AdminDashboard userRole={userRole} onLogout={handleLogout} />
+      </RequireAuth>
+    }
+  />
+  <Route path="*" element={<NotFound />} />
+</Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;
